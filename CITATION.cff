@@ -1,0 +1,51 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: "Multivariable Centile Modelling of Force-Plate Athlete Profiles"
+abstract: >
+  A sex-stratified, reliability-aware R pipeline that turns a federation-scale
+  corpus of VALD ForceDecks tests into multivariable centile profiles per
+  sex x sport x test-type cohort. The pipeline runs a marginal model
+  competition (Linear vs GAMLSS-NO vs GAMLSS-BCT under CRPS/IQR), a joint
+  copula competition (Independence vs Gaussian vs regular vine under the
+  multivariate Energy Score), and returns per-athlete joint percentiles with
+  bootstrap intervals.
+type: software
+authors:
+  - family-names: Chougale
+    given-names: Praveen D.
+    affiliation: "Koita Centre for Digital Health, Indian Institute of Technology Bombay, India"
+    orcid: ""
+    email: "22d129@iitb.ac.in"
+  - family-names: Ananthakumar
+    given-names: Usha
+    affiliation: "Shailesh J. Mehta School of Management, Indian Institute of Technology Bombay, India"
+    orcid: ""
+repository-code: "https://github.com/praveenmaths89/vald-multivariable-centiles"
+url: "https://github.com/praveenmaths89/vald-multivariable-centiles"
+license: MIT
+version: "1.0.0"
+date-released: 2026-05-10
+keywords:
+  - sports analytics
+  - force plate
+  - VALD ForceDecks
+  - GAMLSS
+  - vine copula
+  - multivariate centiles
+  - reliability
+  - reproducible research
+preferred-citation:
+  type: conference-paper
+  title: "Multivariable Centile Modelling of Force-Plate Athlete Profiles: A Sex-Stratified, Reliability-Aware Pipeline for VALD ForceDecks Data"
+  authors:
+    - family-names: Chougale
+      given-names: Praveen D.
+      affiliation: "Koita Centre for Digital Health, Indian Institute of Technology Bombay, India"
+      orcid: ""
+    - family-names: Ananthakumar
+      given-names: Usha
+      affiliation: "Shailesh J. Mehta School of Management, Indian Institute of Technology Bombay, India"
+      orcid: ""
+  conference:
+    name: "STAI-X 2026: Symposium on Trustworthy AI in Practice (Sports Analytics Track)"
+  year: 2026

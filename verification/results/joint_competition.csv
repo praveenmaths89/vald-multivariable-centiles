@@ -1,0 +1,20 @@
+"sex","sport","test","n","p","Indep","Gaussian","Vine","Best","GainOverIndep_pct"
+"Male","Football","CMJ",333,3,0.294,0.29,0.29,"Gaussian",1.4
+"Male","Badminton","CMJ",85,3,0.262,0.26,0.256,"Vine",2
+"Male","Basketball","CMJ",73,3,0.298,0.294,0.295,"Gaussian",1.5
+"Male","Cricket","CMJ",46,3,0.319,0.318,0.317,"Vine",0.4
+"Male","Swimming","CMJ",27,3,0.321,0.322,0.32,"Vine",0.2
+"Male","Track and Field","CMJ",29,3,0.223,0.226,0.214,"Vine",4
+"Female","Badminton","DJ",33,3,0.339,0.332,0.33,"Vine",2.8
+"Female","Football","DJ",71,3,0.333,0.326,0.323,"Vine",3
+"Male","Football","DJ",328,2,0.259,0.258,0.257,"Vine",0.8
+"Male","Badminton","DJ",25,3,0.332,0.319,0.32,"Gaussian",3.9
+"Male","Cricket","DJ",31,3,0.33,0.324,0.33,"Gaussian",1.8
+"Female","Football","SLJ",67,3,0.244,0.243,0.246,"Gaussian",0.5
+"Male","Football","SLJ",308,4,0.328,0.318,0.317,"Vine",3.2
+"Male","Swimming","SLJ",26,4,0.387,0.359,0.367,"Gaussian",7.3
+"Male","Football","SLDJ",156,4,0.371,0.36,0.36,"Vine",2.9
+"Male","Cricket","SLLAH",25,3,0.303,0.292,0.296,"Gaussian",3.6
+"Female","Badminton","SLHAR",30,4,0.369,0.36,0.359,"Vine",2.7
+"Female","Football","SLHAR",55,4,0.365,0.363,0.361,"Vine",1.1
+"Male","Football","SLHAR",166,4,0.381,0.366,0.364,"Vine",4.6

@@ -1,0 +1,26 @@
+"stratum","sex","sport","test_type","n_obs","dim","vine_AIC","vine_BIC","vine_loglik"
+"Male__Football__CMJ","Male","Football","CMJ",333,4,-1752.4,-1718.1,885.2
+"Male__Football__DJ","Male","Football","DJ",328,4,-862.1,-831.7,439
+"Male__Football__SLJ","Male","Football","SLJ",304,4,-614.7,-588.7,314.3
+"Male__Football__SLLAH","Male","Football","SLLAH",222,4,-328.1,-307.7,170
+"Male__Football__SJ","Male","Football","SJ",188,4,-2485,-2462.4,1249.5
+"Male__Football__SLHAR","Male","Football","SLHAR",163,4,-564.9,-549.4,287.4
+"Male__Football__SLDJ","Male","Football","SLDJ",155,4,-620.7,-596.4,318.4
+"Male__Badminton__CMJ","Male","Badminton","CMJ",85,4,-155.1,-135.6,85.6
+"Female__Football__CMJ","Female","Football","CMJ",82,4,-366,-356.3,187
+"Male__Basketball__CMJ","Male","Basketball","CMJ",40,4,-25.2,-23.5,13.6
+"Female__Football__DJ","Female","Football","DJ",71,4,-197.1,-181.3,105.6
+"Female__Football__SLJ","Female","Football","SLJ",65,4,-1601.8,-1590.9,805.9
+"Female__Football__SLLAH","Female","Football","SLLAH",63,4,-108.6,-100,58.3
+"Female__Football__SLDJ","Female","Football","SLDJ",55,4,-21.3,-15.3,13.7
+"Female__Football__SLHAR","Female","Football","SLHAR",50,4,-23,-19.2,13.5
+"Male__Cricket__CMJ","Male","Cricket","CMJ",46,4,-132.8,-123.7,71.4
+"Female__Badminton__CMJ","Female","Badminton","CMJ",37,4,-97.2,-90.7,52.6
+"Female__Badminton__DJ","Female","Badminton","DJ",33,4,-190.8,-183.4,100.4
+"Male__Cricket__DJ","Male","Cricket","DJ",31,4,-63,-57.2,35.5
+"Female__Badminton__SLHAR","Female","Badminton","SLHAR",25,4,-45.9,-43.4,24.9
+"Male__Track_and_Field__CMJ","Male","Track and Field","CMJ",29,4,-125,-116.8,68.5
+"Male__Swimming__CMJ","Male","Swimming","CMJ",27,4,-147.3,-142.1,77.6
+"Male__Swimming__SLJ","Male","Swimming","SLJ",25,4,-129.4,-125.7,67.7
+"Male__Badminton__DJ","Male","Badminton","DJ",25,4,-22.6,-18.9,14.3
+"Male__Cricket__SLLAH","Male","Cricket","SLLAH",25,4,-16.5,-14.1,10.3

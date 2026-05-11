@@ -1,0 +1,47 @@
+{\footnotesize
+\begin{longtable}{lllrp{3.2cm}p{3.2cm}p{3.2cm}}
+\caption{\textbf{Sensitivity of variable selection to the ICC$_{(3,1)}$ threshold.} For each cohort, the metrics that would have entered the joint copula at thresholds $0.4$, $0.5$ (default) and $0.7$, after the sample-size cap $n\!\geq\!10\binom{p}{2}$ is applied. The $0.5$ column reproduces Table~\ref{tab:varsel}.}\label{tab:varsel_sensitivity}\\
+\toprule
+Sex & Sport & Test & $n$ & ICC $\geq 0.4$ & ICC $\geq 0.5$ (default) & ICC $\geq 0.7$ \\
+\midrule
+\endfirsthead
+\multicolumn{7}{l}{\emph{(continued)}} \\
+\toprule
+Sex & Sport & Test & $n$ & ICC $\geq 0.4$ & ICC $\geq 0.5$ (default) & ICC $\geq 0.7$ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Female & Badminton & CMJ & 37 & mRSI & mRSI & mRSI \\
+Female & Football & CMJ & 82 & JumpHeight, mRSI & mRSI & mRSI \\
+Male & Badminton & CMJ & 85 & JumpHeight, PeakPower\_BM, mRSI & JumpHeight, PeakPower\_BM, mRSI & JumpHeight, mRSI \\
+Male & Basketball & CMJ & 73 & \emph{none} & \emph{none} & \emph{none} \\
+Male & Cricket & CMJ & 46 & JumpHeight, PeakPower\_BM, mRSI & JumpHeight, PeakPower\_BM, mRSI & JumpHeight \\
+Male & Football & CMJ & 333 & JumpHeight, PeakPower\_BM, mRSI & JumpHeight, PeakPower\_BM, mRSI & JumpHeight, mRSI \\
+Male & Swimming & CMJ & 27 & \emph{none} & \emph{none} & \emph{none} \\
+Male & Track and Field & CMJ & 29 & \emph{none} & \emph{none} & \emph{none} \\
+\addlinespace[1pt]
+Female & Badminton & DJ & 33 & \emph{none} & \emph{none} & \emph{none} \\
+Female & Football & DJ & 71 & RSI\_FTCT, ContactTime, JumpHeight & RSI\_FTCT, ContactTime, JumpHeight & RSI\_FTCT, ContactTime, JumpHeight \\
+Male & Badminton & DJ & 25 & RSI\_FTCT, ContactTime & RSI\_FTCT, ContactTime & RSI\_FTCT, ContactTime \\
+Male & Cricket & DJ & 31 & \emph{none} & \emph{none} & \emph{none} \\
+Male & Football & DJ & 328 & RSI\_FTCT, JumpHeight & RSI\_FTCT, JumpHeight & JumpHeight \\
+\addlinespace[1pt]
+Male & Football & SJ & 188 & ConcMF\_BM & ConcMF\_BM & ConcMF\_BM \\
+\addlinespace[1pt]
+Female & Football & SLDJ & 55 & MeanLandPow\_R & MeanLandPow\_R & \emph{none} \\
+Male & Football & SLDJ & 156 & ConcImp\_R, ConcImp\_L, MeanLandPow\_R, MeanLandPow\_L & ConcImp\_R, ConcImp\_L, MeanLandPow\_R, MeanLandPow\_L & ConcImp\_R, ConcImp\_L, MeanLandPow\_R, MeanLandPow\_L \\
+\addlinespace[1pt]
+Female & Badminton & SLHAR & 30 & \emph{none} & \emph{none} & \emph{none} \\
+Female & Football & SLHAR & 55 & PeakTakeoffF\_R, PeakTakeoffF\_L, PeakLandF\_R & PeakTakeoffF\_R, PeakTakeoffF\_L, PeakLandF\_R & PeakTakeoffF\_R, PeakLandF\_R \\
+Male & Football & SLHAR & 166 & PeakTakeoffF\_R, PeakTakeoffF\_L, PeakLandF\_R, PeakLandF\_L & PeakTakeoffF\_R, PeakTakeoffF\_L, PeakLandF\_R, PeakLandF\_L & PeakTakeoffF\_R, PeakTakeoffF\_L, PeakLandF\_R, PeakLandF\_L \\
+\addlinespace[1pt]
+Female & Football & SLJ & 67 & ConcImp\_R, ConcMF\_R, ConcMF\_L & ConcImp\_R, ConcMF\_R, ConcMF\_L & ConcMF\_R \\
+Male & Football & SLJ & 308 & ConcImp\_R, ConcImp\_L, ConcMF\_R, ConcMF\_L & ConcImp\_R, ConcImp\_L, ConcMF\_R, ConcMF\_L & ConcImp\_R, ConcImp\_L, ConcMF\_R, ConcMF\_L \\
+Male & Swimming & SLJ & 26 & \emph{none} & \emph{none} & \emph{none} \\
+\addlinespace[1pt]
+Female & Football & SLLAH & 63 & PeakDLF\_R & PeakDLF\_R & \emph{none} \\
+Male & Cricket & SLLAH & 25 & \emph{none} & \emph{none} & \emph{none} \\
+Male & Football & SLLAH & 225 & PeakDLF\_R & \emph{none} & \emph{none} \\
+\end{longtable}
+}

@@ -1,0 +1,26 @@
+"gender","sport","test_type","joint_model","n_test_rows","n_athletes","n_joint_scored","median_joint_pct","pct_elite_joint"
+"Female","Badminton","CMJ","-",37,26,0,NA,NA
+"Female","Badminton","DJ","Vine",33,22,33,51.5,12.1
+"Female","Badminton","SLHAR","Vine",30,21,30,50,10
+"Female","Football","CMJ","-",82,48,0,NA,NA
+"Female","Football","DJ","Vine",71,38,71,49.3,9.9
+"Female","Football","SLDJ","-",55,34,0,NA,NA
+"Female","Football","SLHAR","Vine",55,32,55,48.1,9.1
+"Female","Football","SLJ","Gaussian",67,37,66,48.5,9.1
+"Female","Football","SLLAH","-",63,34,0,NA,NA
+"Male","Badminton","CMJ","Vine",85,51,85,49.4,9.4
+"Male","Badminton","DJ","Gaussian",25,16,25,48,8
+"Male","Basketball","CMJ","Gaussian",73,70,73,49.3,9.6
+"Male","Cricket","CMJ","Vine",46,19,46,48.9,8.7
+"Male","Cricket","DJ","Gaussian",31,19,31,48.4,9.7
+"Male","Cricket","SLLAH","Gaussian",25,15,25,48,8
+"Male","Football","CMJ","Gaussian",333,216,333,49.8,9.9
+"Male","Football","DJ","Vine",328,208,328,49.9,9.8
+"Male","Football","SJ","-",188,123,0,NA,NA
+"Male","Football","SLDJ","Vine",156,110,156,49.7,9.6
+"Male","Football","SLHAR","Vine",166,117,166,49.7,10.2
+"Male","Football","SLJ","Vine",308,192,308,49.6,10.1
+"Male","Football","SLLAH","-",225,160,0,NA,NA
+"Male","Swimming","CMJ","Vine",27,17,27,48.1,11.1
+"Male","Swimming","SLJ","Gaussian",26,16,26,48,11.5
+"Male","Track and Field","CMJ","Vine",29,9,29,51.7,6.9

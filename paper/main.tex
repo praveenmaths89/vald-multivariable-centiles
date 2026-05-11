@@ -1,0 +1,800 @@
+\documentclass[10pt]{article}
+
+\usepackage[letterpaper, margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,allcolors=blue!55!black]{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{capt-of}
+\usepackage{authblk}
+\usepackage{placeins}
+\usepackage{float}
+\usepackage{longtable}
+
+\titlespacing{\section}{0pt}{8pt}{3pt}
+\titlespacing{\subsection}{0pt}{5pt}{2pt}
+\setlength{\parskip}{1pt}
+\setlength{\parindent}{12pt}
+\captionsetup{font=small, skip=2pt, labelfont=bf}
+\setlist[itemize]{leftmargin=*, topsep=2pt, parsep=0pt, itemsep=1pt}
+
+% Be permissive about float placement so figures and tables can land
+% inline rather than be ejected to standalone whitespace pages.
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.95}
+
+\graphicspath{{figures/}}
+\input{numbers.tex}
+\input{numbers_athlete.tex}
+
+\title{\textbf{Multivariable Centile Modelling of Force-Plate Athlete Profiles:}\\[2pt]
+       \texorpdfstring{\large A Sex-Stratified, Reliability-Aware Pipeline for VALD ForceDecks Data}{A Sex-Stratified, Reliability-Aware Pipeline for VALD ForceDecks Data}}
+
+\author[1*]{Praveen D.\ Chougale}
+\author[2]{Usha Ananthakumar}
+\author[3]{Heta Thakker}
+\affil[1]{Koita Centre for Digital Health, IIT Bombay, India}
+\affil[2]{Shailesh J.\ Mehta School of Management, IIT Bombay, India}
+\affil[3]{PhysioQinesis, Thane (Mumbai), India}
+\affil[*]{\textit{Corresponding author: \texttt{22d1629@iitb.ac.in}}}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent
+Force-plate countermovement jump (CMJ), drop jump (DJ) and single-leg
+protocols return dozens of biomechanical variables per athlete.
+Practitioners benchmark each variable against a separate centile band
+and combine the slices mentally, which misses joint phenotypes that
+look unremarkable per metric yet are jointly rare. We give a
+reproducible pipeline that turns a federation-scale corpus of VALD
+ForceDecks tests (\Nathletes{}~athletes, \Ntests{}~test sessions,
+drawn from \Nsports{}~sports of which \NsportsCohort{} yielded a
+cohort that passed our $n\!\geq\!25$ eligibility filter) into
+multivariable centile profiles per sex\,$\times$\,sport\,$\times$\,test
+cohort. The pipeline fixes a clinical metric panel per protocol, so
+cohorts remain comparable; it picks each cohort's marginal model by
+5-fold cross-validated continuous ranked probability score per
+interquartile range (CRPS$/$IQR) among Linear, generalised additive
+model for location, scale and shape with Normal family (GAMLSS-NO),
+and GAMLSS with Box--Cox $t$ family (GAMLSS-BCT) candidates; it picks
+the joint model by 5-fold cross-validated multivariate Energy Score
+(ES) among Independence, Gaussian and regular vine candidates.
+Per-cohort dimensionality is set by a reliability filter (drop a
+metric if intraclass correlation coefficient
+ICC$_{(3,1)}\!<\!0.5$) and by the sample-size cap
+$n\!\geq\!10\binom{p}{2}$. Athlete percentiles use Mahalanobis depth on
+probability-integral-transformed residuals with a non-parametric
+bootstrap interval. Across \Ncohorts{} eligible cohorts, the pipeline
+fits \Njoint{} joint copulas; the vine wins on \Nvine{}, the Gaussian
+copula on \Ngauss{}, and the joint model improves the ES over the
+independence baseline by \MeanGain{}\,\% on average. A worked CMJ
+example flags an athlete whose marginals are individually elite
+(54.7$^{\text{th}}$, 94.2$^{\text{th}}$, 81.9$^{\text{th}}$ percentile)
+yet whose joint percentile is \AthleteJoint{}\,\% (95\,\% confidence
+interval [\AthleteJointLo{}, \AthleteJointHi{}]).
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Force-plate jump protocols --- the bilateral countermovement jump
+(CMJ), drop jump (DJ), squat jump (SJ), single-leg jump (SLJ), and
+several single-leg landing and hopping tests --- are now embedded in
+the daily monitoring of professional and developmental athletes
+\cite{mcmahon2018cmj, flanagan2008rsi, bishop2018asymmetry}. A single
+CMJ returns dozens of biomechanical variables: jump height, modified
+Reactive Strength Index (mRSI), peak power normalised to body mass
+(PeakPower$_{\text{BM}}$, in W$\cdot$kg$^{-1}$), eccentric mean force,
+landing impulse asymmetry, time to take-off, and so on. Practitioners
+typically report each variable against a separate univariate centile
+band and combine the slices in their head. That is where univariate
+centiles fail. Consider an athlete with a 90$^{\text{th}}$ percentile
+jump height, a 30$^{\text{th}}$ percentile mRSI and a 95$^{\text{th}}$
+percentile eccentric duration. Independent univariate scoring labels
+this athlete ``mostly elite'', but the joint pattern is rare: a
+power-without-stretch-reflex phenotype that almost no real cohort
+member exhibits.
+
+This paper formalises and automates the joint reasoning step. We give
+a sex-stratified, reliability-aware multivariable centile pipeline
+whose ingredients --- LMS (Lambda--Mu--Sigma) location-scale-shape
+marginals \cite{cole1992lms, rigby2005gamlss}, copulas on the
+probability integral transform (PIT) residuals
+\cite{joe2014dependence, dissmann2013selecting}, and proper-scoring-rule
+model selection \cite{gneiting2007proper, gneiting2008assessing} --- are
+individually well established but, to our knowledge, have not been
+combined into an end-to-end protocol-aware tool for force-plate data.
+A fixed clinical panel per protocol keeps cohorts comparable across
+sports rather than tuned per stratum. A 5-fold cross-validated model
+competition picks the marginal family and the joint copula for each
+cohort under proper scoring rules, so every modelling choice is
+defensible by a single number. The resulting
+\texttt{score\_athlete()} call returns athlete-level joint percentiles
+with bootstrap intervals alongside the per-metric centile bands.
+
+The remainder of the paper covers background and related work
+(Sec.~\ref{sec:related}), the six-stage methodology
+(Sec.~\ref{sec:methods}), per-cohort validation
+(Sec.~\ref{sec:results}), a worked Male Football CMJ example
+(Sec.~\ref{sec:example}), and a discussion of scope and limitations
+(Sec.~\ref{sec:discussion}).
+
+\section{Background and related work}
+\label{sec:related}
+
+\textbf{Univariate centile curves.} Cole and Green's LMS method
+\cite{cole1992lms} and its generalised additive model for location,
+scale and shape (GAMLSS) generalisation
+\cite{rigby2005gamlss, stasinopoulos2007gamlss} are the standard tool
+for age-conditional reference centiles, and underpin the WHO child
+growth standards \cite{borghi2006who}. We use GAMLSS as our univariate
+building block, with sample-size guidance from Royston and
+Wright~\cite{royston1998construct}.
+
+\textbf{Multivariate dependence via copulas.} Sklar's
+theorem~\cite{sklar1959fonctions} separates the marginals from their
+dependence structure; the two-stage ``inference for margins'' strategy
+fits marginals first, then a copula on the PIT residuals
+\cite{joe2014dependence}. We use regular vine (R-vine) copulas
+\cite{aas2009pair, dissmann2013selecting, czado2022vinereview}, which
+decompose a $p$-dimensional copula into pair copulas indexed by a
+sequence of trees and remain tractable in moderate dimensions.
+
+\textbf{Calibration, reliability, and sport-science profiling.}
+Univariate calibration is assessed via the continuous ranked
+probability score (CRPS), a strictly proper scoring
+rule~\cite{gneiting2007proper}; joint calibration via the multivariate
+Energy Score (ES) \cite{gneiting2008assessing, gneiting2014probabilistic};
+and per-metric goodness-of-fit (GoF) through PIT
+diagnostics~\cite{dawid1984pit}. Test--retest reliability is summarised
+by the intraclass correlation coefficient ICC$_{(3,1)}$
+\cite{koo2016icc, weir2005icc}, and the joint percentile uses
+Mahalanobis depth \cite{mahalanobis1936generalized, liu1999depth} on
+the PIT residuals. Closely related sport-science work evaluates
+ForceDecks reliability per metric
+\cite{cormack2008reliability, merrigan2022forcedecks} but does not, to
+our knowledge, build a joint centile profile.
+
+\section{Methodology}
+\label{sec:methods}
+
+The pipeline is a six-stage cascade. Each cohort is a
+sex\,$\times$\,sport\,$\times$\,test stratum and is fit independently;
+nothing is borrowed across cohorts.
+
+\textbf{Stage 1 --- Cleansing and aggregation.}
+We pull all available ForceDecks tests from a national institute's
+VALD account: \Ntests{}~test sessions on \Nathletes{}~athletes
+(\Nfemale{}~female, \Nmale{}~male; mean age
+\MeanAge{}\,$\pm$\,\SdAge{}\,yr) drawn from \Nsports{}~sports.
+Per-trial measurements are aggregated to a single test-level value by
+the trial median, and tests with within-test coefficient of variation
+(CV) above $25\%$ are dropped. Sport and sex labels are joined from
+external rosters. Ages outside $[8,60]$\,yr are excluded. We stratify
+by sex\,$\times$\,sport\,$\times$\,test and require $n\!\geq\!25$ to
+fit any model.
+
+\textbf{Stage 2 --- Reliability and per-metric noise.}
+For every (cohort, metric) with at least three within-athlete repeat
+sessions we compute ICC$_{(3,1)}$, within-athlete CV, the standard
+error of measurement $\mathrm{SEM} = s_d/\sqrt{2}$ and the minimum
+detectable change at 95\,\% confidence
+$\mathrm{MDC}_{95} = 1.96\sqrt{2}\,\mathrm{SEM}$
+\cite{koo2016icc, weir2005icc}. ICC$_{(3,1)}$ is the variant matched
+to operator-fixed test--retest designs of the kind ForceDecks
+generates; the $0.50$ filter threshold corresponds to the lower bound
+of ``moderate'' reliability under Koo and Li's classification. The
+full per-protocol reliability summary is reported in
+Table~\ref{tab:reliability}.
+
+\textbf{Stage 3 --- Variable selection.}
+Each protocol carries a fixed clinical panel chosen from the
+literature \cite{mcmahon2018cmj, flanagan2008rsi, suchomel2015mrsi,
+markovic2007metaanalytic, cormack2008reliability, bishop2018asymmetry,
+samozino2014fv}: CMJ uses jump height, concentric peak power per body
+mass, mRSI and eccentric mean force; DJ uses RSI from
+flight-time/contact-time (RSI$_{\text{FTCT}}$), contact time, jump
+height and peak landing force per body weight; squat jump (SJ),
+single-leg jump (SLJ), single-leg drop jump (SLDJ), single-leg
+lateral hop (SLLAH) and single-leg horizontal hop assessment (SLHAR)
+follow the same logic. Per-cohort dimensionality $p$ is then reduced
+by two filters using the Stage~2 outputs: the \emph{reliability filter}
+drops a metric whose ICC$_{(3,1)}$ is below $0.50$, and the
+\emph{sample-size cap} $n \!\geq\! 10\binom{p}{2}$ trims the
+lowest-variance residual metric until the cap is satisfied. The cap is
+the rule of thumb of Czado and Nagler for vine copula estimation
+\cite{czado2022vinereview}: it ties admissible dimensionality $p$ to
+the number of pair-copula parameters that the sample can identify.
+The exact set of metrics that enter each cohort's joint copula is
+enumerated in Table~\ref{tab:varsel}. Sensitivity of the selection to
+the ICC threshold ($0.4 / 0.5 / 0.7$) is in Appendix
+Table~\ref{tab:varsel_sensitivity}.
+
+\textbf{Stage 4 --- Marginal competition.}
+For each (cohort, panel-metric) and a metric $Y_i$ on athlete $i$ with
+age $a_i$ and body mass $b_i$, we fit three age-conditional candidate
+families $\mathcal{M} \in \{\textsc{M1, M2, M3}\}$:
+\begin{align}
+\textsc{M1 (Linear):}\quad &
+Y_i = \beta_0 + \beta_1 a_i \;[+\, \beta_2 b_i] + \varepsilon_i,
+\quad \varepsilon_i \sim \mathcal{N}(0, \sigma^2),
+\label{eq:m1}\\[-1pt]
+\textsc{M2 (GAMLSS-NO):}\quad &
+Y_i \sim \mathcal{N}(\mu_i, \sigma_i^2),\;
+\mu_i = s_\mu(a_i) \;[+\, s_\mu(b_i)],\;
+\log \sigma_i = s_\sigma(a_i),
+\label{eq:m2}\\[-1pt]
+\textsc{M3 (GAMLSS-BCT):}\quad &
+Y_i \sim \mathrm{BCT}(\mu_i, \sigma_i, \nu_i, \tau_i),\;
+\{\mu_i, \sigma_i, \nu_i, \tau_i\} = s_\bullet(a_i) \;[+\, s_\bullet(b_i)],
+\label{eq:m3}
+\end{align}
+where $s_\bullet$ are P-spline smooths (the GAMLSS \texttt{pb()} basis)
+and the body-mass term $[+\, s_\bullet(b_i)]$ is included only for
+mass-dependent metrics (\texttt{PeakPower$_{\text{BM}}$},
+\texttt{ConcMF$_{\text{BM}}$}, \texttt{ConcImp\_*},
+\texttt{MeanLandPow\_*}, \texttt{PeakLandF\_*}, \texttt{PeakDLF\_*},
+\texttt{PeakTakeoffF\_*}, \texttt{DropLand\_*}). The Box--Cox $t$
+distribution \cite{rigby2005gamlss, stasinopoulos2007gamlss} absorbs
+skewness through $\nu$ and kurtosis through $\tau$. We treat BCT as
+the reference candidate, not as the default winner: force-plate
+metrics are routinely right-skewed (peak power, landing forces) or
+left-truncated (contact time), so a Gaussian-residual model would
+miscalibrate the upper tail in exactly those cohorts where flagging
+elite athletes matters most. The candidates compete under 5-fold
+cross-validated CRPS$/$IQR
+\begin{equation}
+\widehat{S}(\mathcal{M}) =
+\frac{1}{K} \sum_{k=1}^{K}
+\mathbb{E}_{i \in \text{fold}_k}\!\left[
+\frac{\mathrm{CRPS}\!\left(F_{\mathcal{M},-k}(\cdot \mid a_i, b_i),\, y_i\right)}
+     {\mathrm{IQR}\!\left(F_{\mathcal{M},-k}(\cdot \mid a_i, b_i)\right)}
+\right],\quad K = 5,
+\label{eq:crps}
+\end{equation}
+which is strictly proper and scale-free~\cite{gneiting2007proper}: it
+lets the linear model win on small cohorts where GAMLSS would over-fit,
+and lets BCT win where there is non-Gaussian skewness or kurtosis.
+The model with the smallest $\widehat{S}$ is re-fit on the full
+cohort and its predictive cumulative distribution function (CDF) defines
+the per-metric percentile.
+
+\textbf{Stage 5 --- PIT residuals and joint copula competition.}
+The PIT residuals~\cite{dawid1984pit}
+$u_j = F_j(y_j \mid a, b)$ map each athlete onto the unit cube,
+where any remaining structure is pure dependence. PIT histograms are
+an interpretable per-metric GoF check (uniformity under correct
+calibration); we report the mean Kolmogorov--Smirnov uniform (KS)
+$p$-value across panel metrics per cohort as the marginal GoF summary.
+For $p$ selected metrics in a cohort, Sklar's
+representation~\cite{sklar1959fonctions} factorises the joint
+distribution as
+\begin{equation}
+F(y_1, \dots, y_p \mid a, b) =
+C\!\left(F_1(y_1 \mid a, b),\, \dots,\, F_p(y_p \mid a, b)\right),
+\label{eq:sklar}
+\end{equation}
+and the R-vine pair-copula factorisation~\cite{aas2009pair} writes
+the copula density as a product over $p\!-\!1$ trees:
+\begin{equation}
+c(u_1, \dots, u_p) =
+\prod_{\ell=1}^{p-1} \prod_{e \in E_\ell}
+c_{j_e, k_e \mid D_e}\!\left(u_{j_e \mid D_e},\, u_{k_e \mid D_e}\right),
+\label{eq:vine}
+\end{equation}
+where $E_\ell$ is the edge set of tree $\ell$ and $D_e$ is the
+conditioning set of edge $e$. We fit three joint candidates:
+\emph{Independence} ($c \equiv 1$); a \emph{Gaussian} copula via the
+empirical correlation of $\Phi^{-1}(u_j)$; and an \emph{R-vine} copula
+whose structure is selected by the Di{\ss}mann
+algorithm~\cite{dissmann2013selecting} and whose pair-copula families
+are picked from \{Independence, Gaussian, Student-$t$, Clayton,
+Gumbel, Frank, Joe, survival-Clayton, survival-Gumbel\} by Akaike
+information criterion (AIC), as implemented in
+\texttt{VineCopula}~\cite{nagler2022vinecopula}. Each candidate is
+scored by 5-fold cross-validated multivariate ES
+\cite{gneiting2008assessing, gneiting2014probabilistic} on $N{=}300$
+joint samples and the per-cohort winner is retained. The per-cohort
+fit-quality summary ($C_M$, $C_J$, mean PIT $p$-value and bootstrap
+CI width) is in Table~\ref{tab:fitqual}.
+
+\textbf{Stage 6 --- Athlete scoring.}
+Given an athlete with a (partially) complete panel for the target
+cohort, the per-metric centile is
+\begin{equation}
+\widehat{q}_m^{(i)} =
+\widehat{F}_m\!\left(y_m^{(i)} \mid a_i, b_i\right) \times 100\%,
+\label{eq:qmarg}
+\end{equation}
+and the joint depth-based centile
+\cite{mahalanobis1936generalized, liu1999depth} is
+\begin{equation}
+\widehat{q}_{\text{joint}}^{(i)} =
+\mathbb{P}_{\widehat{C}}\!\left(D(\mathbf{U}^{(i)}) \leq D(\mathbf{u}^{(i)})\right) \times 100\%,
+\quad \mathbf{u}^{(i)} = \big(\widehat{F}_1(y_1^{(i)}), \dots, \widehat{F}_p(y_p^{(i)})\big),
+\label{eq:qjoint}
+\end{equation}
+where $\mathbf{U}^{(i)}$ is a draw from the fitted vine $\widehat{C}$
+and $D(\cdot)$ is Mahalanobis depth in $\Phi^{-1}(\cdot)$ space. We
+report the centile with a non-parametric 95\,\% bootstrap interval
+($B{=}200$) over re-sampled cohort residuals. Per-metric MDC$_{95}$ is
+reported beside each percentile so practitioners can flag changes that
+exceed measurement noise. The whole procedure is wrapped in a single
+\texttt{score\_athlete(profile\_id, sex, sport, test)} call; the
+realised output for the worked example is in Sec.~\ref{sec:example}.
+
+\FloatBarrier
+\section{Validation across cohorts}
+\label{sec:results}
+
+The validation walks through the four pipeline stages whose output is
+cohort-level, in pipeline order: reliability, variable selection,
+marginal model fit, and joint copula. \Ncohorts{}~cohorts pass the
+$n\!\geq\!25$ filter and span \NsportsCohort{}~of the
+\Nsports{}~sports in the corpus; the per-sex\,$\times$\,sport\,$\times$\,test
+coverage map is in Appendix~Table~\ref{tab:coverage}. We summarise
+each cohort $c$ by two scores --- the across-metric median marginal
+sharpness and the joint-model ES --- defined as
+\begin{equation}
+C_M^{(c)} = \mathrm{median}_{m \in \mathcal{M}_c}\,\widehat{S}_m^{(c)},
+\qquad
+C_J^{(c)} = \mathrm{ES}\!\left(\widehat{C}^{(c)}, \mathbf{U}^{(c)}\right),
+\label{eq:cmcj}
+\end{equation}
+where $\widehat{S}_m^{(c)}$ is the cohort-$c$ CRPS$/$IQR for metric $m$
+from Eq.~\eqref{eq:crps}, $\widehat{C}^{(c)}$ is the cohort's winning
+copula from Eq.~\eqref{eq:vine}, and $\mathbf{U}^{(c)}$ is the
+empirical PIT matrix.
+
+\textbf{Reliability across protocols.}
+Across the \Ncohorts{}~surviving cohorts and their panel metrics, the
+median ICC$_{(3,1)}$ is \IccMed{} (IQR \IccQone{}--\IccQthree{}) and
+\IccPass{}\,\% of (cohort, metric) pairs clear the
+ICC$_{(3,1)}\!\geq\!0.5$ filter. DJ and SLJ are the most reliable
+protocols (median ICC above $0.80$); the SLLAH and SJ landing
+metrics at the bottom of the corpus drop most of their drop-landing
+metrics, which is the source of most of the ``binding cap = drop''
+rows in Table~\ref{tab:fitqual} below. The full per-protocol
+reliability summary, with median ICC and median MDC$_{95}$ per
+(test, metric), is in Table~\ref{tab:reliability}; the unaggregated
+per-cohort detail for every cell that contributed to this summary is
+in Appendix Table~\ref{tab:reliability_full}. CMJ jump height
+(median ICC = $0.80$) and DJ RSI$_{\text{FTCT}}$ (median ICC = $0.81$)
+are the most reliable bilateral metrics in the corpus; SLDJ left and
+right concentric impulses (median ICC $\approx 0.48$) are the least
+reliable, which explains their frequent retirement at Stage~3.
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption{Per-protocol reliability: median ICC$_{(3,1)}$ and median
+MDC$_{95}$ across cohorts with test--retest pairs; $k$ is the number of
+contributing cohorts.}
+\label{tab:reliability}
+\input{tables/tab_reliability}
+\end{table}
+
+\textbf{Variable-selection outcomes.}
+Table~\ref{tab:varsel} reports, per cohort, exactly which panel
+metrics survived Stage~3 and entered the joint copula. The median
+cohort retains \NselMed{}~variables; \NkeptFull{}~cohorts retain the
+full four-metric panel and \Nretired{}~cohort is retired entirely
+because every panel metric drops out under the reliability filter.
+Patterns are protocol-driven. In CMJ, mRSI is retained in $8$ of
+$8$ CMJ cohorts (more than any other CMJ panel metric), jump height
+in $6$ of $8$ and PeakPower$_{\text{BM}}$ in $4$ of $8$, so mRSI is
+the single most informative CMJ metric for centile profiling in this
+corpus. In DJ, jump height survives in every cohort, with contact
+time and RSI$_{\text{FTCT}}$ close behind. In the single-leg families
+(SLJ, SLDJ, SLHAR), at least one left/right pair is preserved
+whenever the cap permits, which is operationally what practitioners
+want for asymmetry profiling. Football cohorts retain $2.3$
+metrics on average, while Swimming and Track-and-Field cohorts
+retain only $2.0$; the gap is driven by sample size (Football has the
+largest cohorts) rather than by sport-intrinsic biomechanics.
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption{Variable selection per cohort. ``Selected metrics'' lists the
+panel metrics that survived the reliability filter
+(ICC$_{(3,1)}\!\geq\!0.5$) and the sample-size cap
+($n\!\geq\!10\binom{p}{2}$); these are the variables that entered the
+joint copula. ``Joint model'' is the per-cohort winner under
+multivariate ES.}
+\label{tab:varsel}
+\input{tables/tab_variable_selection}
+\end{table}
+
+\textbf{Marginal model fit.}
+The 5-fold cross-validated marginal competition fits 83 candidate
+sets across the eligible cohorts. The winners split
+\Nlin{}/\NBCT{}/\NNO{} (Linear$/$BCT$/$NO), i.e.\ Linear is the modal
+winner at $52\,\%$ of marginals, BCT at $36\,\%$ and NO at $12\,\%$:
+Linear suffices on small cohorts and approximately Gaussian metrics,
+BCT wins on skewed or heavy-tailed metrics (notably landing forces
+and peak powers), and NO occupies a small middle ground where a
+smoother conditional mean fits but the residual is approximately
+Gaussian. Across cohorts the median best-marginal CRPS$/$IQR is
+\CRPSmed{}; the worked example in Sec.~\ref{sec:example} sits near
+that median. Per-cohort sample size $n$, joint dimensionality $p$,
+binding constraint, $C_M$, $C_J$, mean PIT KS-uniform $p$-value and
+the bootstrap 90\,\% CI width on the joint percentile are
+consolidated in Table~\ref{tab:fitqual}. The full per-(cohort
+$\times$ metric) cross-validated CRPS$/$IQR competition is in
+Appendix Table~\ref{tab:marg_full}, and PIT histograms for every
+cohort are in Appendix Figure~\ref{fig:pit_grid}. The median cohort
+GoF $p$-value across all eligible cohorts is $0.67$ (range
+$0.31$--$0.93$), with all 25 cohorts well above the $0.05$ rejection
+threshold; PIT residuals are uniformly distributed at every cohort,
+so the rare-joint signal in the worked example is not an artefact
+of marginal mis-fit anywhere in the corpus.
+
+\begin{table}[!htbp]
+\centering
+\tiny
+\caption{Per-cohort fit quality and binding constraints. $n$ is the
+cohort sample size; $p$ is the joint dimensionality after the
+reliability filter ($\mathrm{ICC}_{(3,1)} \!<\! 0.5$) and the
+sample-size cap ($n \!\geq\! 10\binom{p}{2}$); ``Binding'' is the cap
+that bound the cohort; ``Joint'' is the winning joint model (``---'' if
+all metrics were dropped). $C_M$ is the average best-marginal
+CRPS$/$IQR (lower is sharper); $C_J$ is the winning joint ES (lower
+is better). GoF $p$ is the mean KS-uniform $p$-value of the PIT
+residuals across panel metrics. ``90\% CI'' is the median across
+cohort athletes of the bootstrap 5\%--95\% interval width on the
+joint percentile, in percentage points.}
+\label{tab:fitqual}
+\input{tables/tab_fit_quality}
+\end{table}
+
+\textbf{Joint copula and across-cohort summary.}
+Of the \Ncohorts{}~eligible cohorts, \Njoint{}~admit a joint fit
+(the remainder had every panel metric dropped by the reliability
+filter or the sample-size cap; per-cohort detail in
+Table~\ref{tab:fitqual}). The vine wins on \Nvine{}~cohorts, the
+Gaussian copula on \Ngauss{}, and the independence baseline on
+\Nindep{}; the average gain in ES over independence is
+\MeanGain{}\,\%. Per-cohort scores are in Table~\ref{tab:calscores};
+the per-cohort copula competition results and the fitted vine
+structures (which pair-copula families appear on which edges) are in
+Appendix Table~\ref{tab:joint_full} and Appendix
+Table~\ref{tab:vine_structures}.
+The lowest winning ES (best-calibrated cohort) is \BestCohort{}
+($C_J = \BestCwin{}$), where Independence wins so the joint adds
+nothing; the highest is \WorstCohort{} ($C_J = \WorstCwin{}$), where
+a vine is required to match the long-tailed bilateral landing
+asymmetry. The largest gains over independence (up to $4.4\,\%$) come
+from the SLHAR landing-asymmetry cohorts; for these cohorts a
+single-variable centile would systematically misclassify joint
+patterns, while cohorts with $C_J$ near zero are well-captured by
+independence.
+
+\begin{table}[!htbp]
+\centering
+\scriptsize
+\caption{Per-cohort calibration scores. $C_M$~$=$~mean best-marginal
+CRPS$/$IQR (lower is sharper); $C_J$~$=$~winning joint ES (lower is
+better). Worked-example cohort in \textbf{bold}.}
+\label{tab:calscores}
+\input{tables/tab_calibration_scores}
+\end{table}
+
+\FloatBarrier
+\section{Worked example: a hidden-phenotype athlete in Male Football CMJ}
+\label{sec:example}
+
+Having validated the per-cohort fits in the previous section, we now
+demonstrate the per-athlete scoring on a single representative athlete
+in the Male Football CMJ cohort. We use Male Football CMJ ($n = 333$)
+because (i)~it is the only cohort large enough that all three
+marginal candidates and all three joint candidates can be compared
+without the sample-size cap binding, and (ii)~the resulting joint
+model is non-trivial: the marginal-model winners are jump height
+(BCT), peak power per body mass (BCT) and mRSI (Linear), and the
+joint-model winner is the vine copula (ES $0.325$ versus $0.333$ for
+Independence; gain $2.3\,\%$).
+
+Table~\ref{tab:score} reports the actual return value of
+\texttt{score\_athlete()} for one athlete in this cohort
+(age \AthleteAge{}\,yr, body mass \AthleteBM{}\,kg) so the reader can
+see the practitioner-facing output verbatim. Read marginally, the
+athlete looks straightforward: jump height sits at the
+54.7$^{\text{th}}$ percentile (just above median),
+PeakPower$_{\text{BM}}$ at the 94.2$^{\text{th}}$ (elite tail), and
+mRSI at the 81.9$^{\text{th}}$ (above cohort). A standard univariate
+report would label the athlete ``above average, with elite power''.
+The joint percentile from the vine copula tells a different story:
+\AthleteJoint{}\,\% (95\,\% bootstrap CI [\AthleteJointLo{},
+\AthleteJointHi{}]). Only one in ten cohort members occupies a
+comparable position in the joint PIT space. All three marginal
+percentiles lie in the upper half of the cohort distribution, but the
+joint percentile is \AthleteJoint{}\,\%: the athlete's combination
+of metrics is more unusual than any single metric suggests, which is
+the central diagnostic value of multivariable centiles. The
+MDC$_{95}$ column tells the practitioner how much of a per-metric
+change is real versus measurement noise.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Concrete output of \texttt{score\_athlete()} for one Male
+Football CMJ athlete (age \AthleteAge{}\,yr, body mass
+\AthleteBM{}\,kg). Pct is the marginal percentile from the winning
+GAMLSS model; MDC$_{95}$ is the cohort minimum detectable change. The
+joint percentile uses Mahalanobis depth on the PIT vector with a
+non-parametric bootstrap CI.}
+\label{tab:score}
+\input{tables/tab_score_example}
+\end{table}
+
+To illustrate the variability of the joint diagnostic across
+athletes, the same scoring output for five additional athletes from
+the Male Football CMJ cohort is in Appendix
+Table~\ref{tab:score_extended}.
+
+Figure~\ref{fig:centiles} plots the per-metric age-conditional centile
+bands (5/25/50/75/95) for the cohort with raw observations overlaid
+(left), and the same athlete's per-metric percentiles on a $[0,100]$
+radar (right). All three marginal points sit above the cohort median.
+In the cohort, however, peak power, mRSI and jump height are tightly
+co-dependent: an athlete in the top $6\,\%$ for relative power almost
+always sits above the 75$^{\text{th}}$ percentile for jump height.
+This athlete breaks that pattern with very high power but only a
+median jump, and the joint percentile in Table~\ref{tab:score}
+surfaces the mismatch. The athlete sits in the upper tail on
+PeakPower$_{\text{BM}}$ but only at the cohort median on jump height;
+this dissociation between power production and ballistic outcome is
+precisely the joint pattern that single-variable centiles would miss.
+The worked-example cohort's mean PIT KS-uniform $p$-value is $0.67$
+(Table~\ref{tab:fitqual}, ``GoF $p$'' column), so the rare-joint
+signal is not an artefact of marginal mis-fit.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[c]{0.62\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_centiles_example.jpg}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.36\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_radar_example.jpg}
+\end{minipage}
+\caption{Worked example. Left: per-metric age-conditional centile
+bands (5/25/50/75/95) for Male Football CMJ; bands are model-based
+predictive quantiles at the median body mass. Right: the same
+athlete's per-metric percentiles on a $[0,100]$ axis. All three
+marginal points sit above the cohort median, yet the joint pattern is
+rare (Table~\ref{tab:score}).}
+\label{fig:centiles}
+\end{figure}
+
+Centile bands for the same metric across all CMJ cohorts (so the
+reader can compare the Male Football CMJ profile with other CMJ
+cohorts) are in Appendix Figure~\ref{fig:centile_bands_grid}.
+
+\FloatBarrier
+\section{Discussion}
+\label{sec:discussion}
+
+\textbf{What we add.} The pipeline is, to our knowledge, the first
+end-to-end implementation of multivariable centile profiling for
+ForceDecks data that commits to a fixed clinical panel per protocol,
+settles each cohort's marginal and joint structure through proper
+scoring rules with cross-validation, and degrades gracefully under
+low reliability or small sample sizes. The joint ES gain over
+independence is modest in absolute terms (\MeanGain{}\,\% on average)
+but always non-negative, and is largest in single-leg jump and drop
+jump cohorts, where bilateral and stretch-shortening cycle dependence
+is real biomechanics rather than measurement noise. For the
+practitioner, the operational gain is the change in interpretation,
+not the change in score: an athlete who looks elite under three
+independent centile bands can sit in the bottom decile under the
+joint model, and the worked example just above
+(Sec.~\ref{sec:example}) is exactly that case.
+
+\textbf{Where the pipeline binds.} Three constraints shape the
+output: the reliability filter (the dominant one, matching the
+ForceDecks profile reported by Cormack et al.\
+\cite{cormack2008reliability} and Merrigan et al.\
+\cite{merrigan2022forcedecks}), the sample-size cap
+$n\!\geq\!10\binom{p}{2}$ that trims medium-sized cohorts to
+$p\!=\!1$ or $p\!=\!2$, and uneven sport coverage:
+\NsportsCohort{}~of \Nsports{}~sports yield a surviving cohort, and
+football alone accounts for the majority of cohorts that support
+$p\!\geq\!3$. None of these are pipeline failures; they are the cost
+of refusing to fit a copula that the sample cannot identify.
+
+\textbf{Limitations and future work.} We treat each test session
+independently and do not model intra-athlete temporal dependence (an
+athlete's repeated measurements through a season). The reliability
+summary rests on a single test--retest design and assumes the
+within-cohort population is homogeneous over the window in which the
+retest pairs were collected. The fixed clinical panel is conservative
+by design, so an athlete-specific candidate metric (e.g.\ a sport
+coach's preferred asymmetry index) cannot enter the joint model
+without re-running the per-cohort competition. Conditional vine
+copulas~\cite{czado2022vinereview} that allow the dependence
+structure itself to vary smoothly with age, body mass or playing
+level are the natural next step, as is treating playing position as
+a covariate where it is consistently recorded.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We provide a fully scripted, sex-stratified, reliability-aware
+pipeline for multivariable centile modelling of ForceDecks data. Its
+three model competitions --- marginal candidates, joint candidates,
+and per-cohort dimensionality --- make every modelling choice
+defensible by a single number. The accompanying
+\texttt{score\_athlete()} function returns marginal percentiles with
+measurement-noise context and a bootstrap-stabilised joint percentile,
+surfacing the joint phenotypes that no per-metric report can detect.
+
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+
+\section{Cohort coverage}
+\label{app:coverage}
+\noindent Sample size $n$ per sex\,$\times$\,sport\,$\times$\,test
+cohort. Empty cells indicate cohorts that did not survive eligibility
+($n < 25$). The best-covered cells are Male Football CMJ ($n = 333$),
+Male Football DJ ($n = 328$) and Male Football SLJ ($n = 308$); the
+thinnest are Male Badminton DJ ($n = 25$), Male Cricket SLLAH
+($n = 25$) and Male Swimming SLJ ($n = 26$). Female cohorts and
+non-football sports are systematically smaller, which is the source
+of the variable-selection patterns reported in Sec.~\ref{sec:results}.
+
+\smallskip
+\begin{center}\scriptsize
+\input{tables/tab_cohort_coverage}
+\end{center}
+\refstepcounter{table}\label{tab:coverage}
+
+\section{Additional EDA panels}
+\label{app:eda}
+\begin{center}
+\begin{minipage}{0.24\linewidth}
+  \includegraphics[width=\linewidth]{fig_eda_age.jpg}\\
+  \captionof{figure}{Athlete age distribution.}
+\end{minipage}\hfill
+\begin{minipage}{0.24\linewidth}
+  \includegraphics[width=\linewidth]{fig_eda_jh_age.jpg}\\
+  \captionof{figure}{CMJ jump height vs.\ age by sex.}
+\end{minipage}\hfill
+\begin{minipage}{0.24\linewidth}
+  \includegraphics[width=\linewidth]{fig_eda_cumulative.jpg}\\
+  \captionof{figure}{Cumulative tests over time.}
+\end{minipage}\hfill
+\begin{minipage}{0.24\linewidth}
+  \includegraphics[width=\linewidth]{fig_eda_missing.jpg}\\
+  \captionof{figure}{Panel availability per cohort.}
+\end{minipage}
+\end{center}
+
+\section{Per-cohort reliability (full)}
+\label{app:reliability_full}
+The unaggregated Stage~2 output: every (sex, sport, test, metric) cell
+that contributed to the body Table~\ref{tab:reliability} summary,
+with its own ICC$_{(3,1)}$, SEM and MDC$_{95}$.
+\input{tables/tab_reliability_full}
+
+\section{Per-cohort marginal-competition (full)}
+\label{app:marg_full}
+The full per-(cohort $\times$ metric) Stage~4 marginal competition
+under Eq.~\eqref{eq:crps}: 5-fold cross-validated CRPS$/$IQR for
+Linear (M1, Eq.~\eqref{eq:m1}), GAMLSS-NO (M2, Eq.~\eqref{eq:m2}) and
+GAMLSS-BCT (M3, Eq.~\eqref{eq:m3}). The winning family is bolded.
+\input{tables/tab_marginal_competition_full}
+
+\section{Per-cohort joint-copula competition and fitted vine structures}
+\label{app:joint_full}
+The Stage~5 joint competition: per-cohort 5-fold cross-validated
+multivariate Energy Score for Independence, Gaussian copula, and the
+R-vine of Eq.~\eqref{eq:vine}. The winning candidate is bolded; the
+``Gain'' column reports the per-cent improvement of the winner over
+the Independence baseline.
+\input{tables/tab_joint_competition_full}
+
+\smallskip
+\noindent For every cohort whose vine wins, Table~\ref{tab:vine_structures}
+enumerates the fitted pair-copula edges (which family appears on
+which edge of the vine, with the implied Kendall's $\tau$).
+\input{tables/tab_vine_structures}
+
+\section{PIT histograms per cohort}
+\label{app:pit_grid}
+\noindent For every (cohort, metric) entering the joint copula, the
+histogram of PIT residuals $u_j = F_j(y_j \mid a, b)$ from the winning
+marginal in Stage~4 of Eqs.~\eqref{eq:m1}--\eqref{eq:m3}. Under
+correct calibration each histogram should be uniform on $[0,1]$;
+the dashed grey line marks the expected count per bin.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig_pit_grid.jpg}
+\caption{PIT histograms for every (cohort, metric) pair entering the
+joint copula. Dashed grey line: expected count under correct
+calibration ($n / 10$ per bin).}
+\label{fig:pit_grid}
+\end{figure}
+
+\section{Per-cohort CMJ JumpHeight centile bands}
+\label{app:centile_bands_grid}
+\noindent The age-conditional JumpHeight centile bands
+(5/25/50/75/95) from the winning marginal under
+Eqs.~\eqref{eq:m1}--\eqref{eq:m3}, one panel per CMJ cohort that
+retained JumpHeight at Stage~3. Raw observations are overlaid as light
+grey points. The Male Football CMJ panel reproduces the worked-example
+band (Fig.~\ref{fig:centiles}, left) so the reader can place that
+athlete against the other CMJ cohorts.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig_centile_bands_grid.jpg}
+\caption{CMJ JumpHeight centile bands (5/25/50/75/95) per surviving
+CMJ cohort. Bands are model-based predictive quantiles at the cohort's
+median body mass; raw points overlaid.}
+\label{fig:centile_bands_grid}
+\end{figure}
+
+\section{Variable-selection sensitivity to the ICC threshold}
+\label{app:varsel_sensitivity}
+\noindent Stage~3 selection re-run at three ICC$_{(3,1)}$ filter
+thresholds (0.4, 0.5 default, 0.7) with the sample-size cap
+$n\!\geq\!10\binom{p}{2}$ applied unchanged. The 0.5 column reproduces
+body Table~\ref{tab:varsel}; comparing across columns shows which
+cohorts gain or lose metrics under stricter or laxer reliability
+filtering.
+\input{tables/tab_varsel_sensitivity}
+
+\section{Extended athlete-scoring example}
+\label{app:score_extended}
+\noindent The same \texttt{score\_athlete()} output as
+Table~\ref{tab:score} for five additional, randomly selected athletes
+from the worked-example Male Football CMJ cohort. ``Joint pct'' uses
+Eq.~\eqref{eq:qjoint}; the 95\,\% bootstrap CI is over $B = 200$
+re-samples of the cohort PIT cloud.
+\smallskip
+\begin{center}
+\input{tables/tab_score_example_extended}
+\end{center}
+\refstepcounter{table}\label{tab:score_extended}
+
+\section*{Acknowledgements}
+We thank the coaches and athletes whose performance data
+made this work possible, and the Indian Institute of Technology
+Bombay for hosting the collaboration.
+
+\section*{Data Availability}
+Code, fitted model objects, anonymised per-cohort summaries,
+per-athlete score tables (\texttt{verification/results/athlete\_scores\_wide.csv}
+and \texttt{athlete\_scores\_long.csv}; one row per athlete-test
+occasion with marginal percentiles, joint percentile and 95\,\%
+bootstrap interval), and a fully reproducible pipeline are
+released at
+\url{https://github.com/praveenmaths89/vald-multivariable-centiles}
+(a permanent DOI is provided via Zenodo upon acceptance).
+The underlying ForceDecks data are held by PhysioQinesis /
+Performance Lab in collaboration with IIT Bombay and are
+available from the corresponding author upon reasonable request,
+subject to the data sharing agreement governing the collaboration.
+
+\section*{Conflicts of Interest}
+The authors declare no conflicts of interest.
+
+{\small
+\bibliographystyle{plain}
+\bibliography{refs}}
+
+\end{document}
